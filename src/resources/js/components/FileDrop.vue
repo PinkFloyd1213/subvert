@@ -1,7 +1,7 @@
 <template>
     <div>
         <div v-if="!started" :class="classes" @dragover="dragover" @dragleave="dragleave" @drop="drop">
-            <input type="file" name="fileHandler" id="fileHandler" class="w-px h-px opacity-0 overflow-hidden absolute" ref="file" @change="onChange" accept=".mp4, .mov, .m4a" />
+            <input type="file" name="fileHandler" id="fileHandler" class="w-px h-px opacity-0 overflow-hidden absolute" ref="file" @change="onChange" accept="video/*, audio/*" />
             <label v-if="!video" for="fileHandler" class="block cursor-pointer">
                 <p class="text-center text-gray-500 text-lg">Glissez + déposez ici ou <span class="underline hover:text-gray-800">cliquez pour choisir</span>.</p>
             </label>
@@ -16,14 +16,14 @@
                         <option v-for="language in languages" :value="language" :key="language">{{ language }}</option>
                     </select>
                     <select v-if="options.chapters" v-model="options.chapters_amount" class="mt-4 bg-white border border-gray-300 text-gray-500 font-medium py-2 px-4 rounded mx-2">
-                        <option :value="n" v-for="n in 20">{{ n }} Chapter{{ n !== 1 ? 's' : '' }}</option>
+                        <option :value="n" v-for="n in 20">{{ n }} Chapitre{{ n !== 1 ? 's' : '' }}</option>
                     </select>
                     <button class="mt-4 bg-purple-500 border border-purple-500 text-white font-medium py-1.5 px-4 rounded mx-2" @click="start">GO !</button>
                 </div>
             </div>
         </div>
         <div v-else>
-            <Stepper :step="step" :message="message" />
+            <Stepper :step="Étape" :message="message" />
         </div>
         <div v-if="started && step === 98" class="text-center mt-8">
             <a :href="'/process/' + processId" class="inline-block bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded">
@@ -46,19 +46,19 @@ const processId = ref(null)
 const intervalId = ref(null)
 
 const step = ref(1)
-const message = ref('Extracting audio')
+const message = ref('Extraction de l\'audio')
 
 const languages = ref([
     'Anglais',
-    "espagnol",
-    "français",
-    "allemand",
-    'italien',
-    "portugais",
-    "russe",
-    "chinois",
-    "japonais",
-    "coréen",
+    "Espagnol",
+    "Français",
+    "Allemand",
+    'Italien',
+    "Portugais",
+    "Russe",
+    "Chinois",
+    "Japonais",
+    "Coréen",
 ])
 
 const options = reactive({
@@ -74,7 +74,21 @@ const buttonStyles = reactive({
     'active': 'mt-4 bg-purple-500 border border-purple-500 text-white font-medium py-1.5 px-4 rounded mx-2'
 })
 
+const checkFilesize = (size) => {
+    let sizes = ['B', 'K', 'M', 'G']
+    let maxSize = parseInt(window.maxFilesize.substring(0, window.maxFilesize.length - 1))
+
+    maxSize = maxSize * Math.pow(1024, sizes.indexOf(window.maxFilesize.slice(-1)))
+
+    return size < maxSize
+}
+
 const onChange = () => {
+    if (!checkFilesize(file.value.files[0].size)) {
+        alert(`The file you selected is too large. Please select a file smaller than ${window.maxFilesize}.`)
+        return
+    }
+
     video.value = file.value.files[0]
 }
 
@@ -94,6 +108,12 @@ const drop = (e) => {
     e.preventDefault()
     e.stopPropagation()
     classes.value = 'w-full py-24 border-2 border-dashed mt-12'
+
+    if (!checkFilesize(e.dataTransfer.files[0].size)) {
+        alert(`The file you selected is too large. Please select a file smaller than ${window.maxFilesize}.`)
+        return
+    }
+
     video.value = e.dataTransfer.files[0]
 }
 
@@ -127,6 +147,7 @@ const poll = () => {
 
             if (response.data.status === 99) {
                 console.log(response)
+                message.value = response.data.error
                 clearInterval(intervalId.value)
             }
 
